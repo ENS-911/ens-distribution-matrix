@@ -23,6 +23,10 @@ const pool = new Pool({
   port: DB_PORT,
 });
 
+app.get('/', (req, res) => {
+    res.send('Hello, world!');
+  });
+
 app.get('/client/:clientKey', async (req, res) => {
   const clientKey = req.params.clientKey;
 
