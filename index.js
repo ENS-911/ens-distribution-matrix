@@ -1,5 +1,6 @@
 const express = require('express');
 const { Pool } = require('pg');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +18,8 @@ const pool = new Pool({
       rejectUnauthorized: false, // Ignore unauthorized SSL errors (not recommended for production)
     },
 });
+
+app.use(cors());
 
 app.get('/', (req, res) => {
     res.send('Hello, world!');
