@@ -9,11 +9,13 @@ const port = 3000;
 const pool = new Pool({
     user: 'ensclient',
     host: 'ens-client.cfzb4vlbttqg.us-east-2.rds.amazonaws.com',
-    database: 'ens-client',
+    database: 'postgres',
     password: 'gQ9Sf8cIczKhZiCswXXy',
     port: 5432,
     max: 20,
-    ssl: false,
+    ssl: {
+      rejectUnauthorized: false, // Ignore unauthorized SSL errors (not recommended for production)
+    },
 });
 
 app.get('/', (req, res) => {
