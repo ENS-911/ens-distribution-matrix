@@ -5,22 +5,15 @@ require('dotenv').config();
 const app = express();
 const port = 3000;
 
-// Load environment variables
-const {
-  DB_USER,
-  DB_HOST,
-  DB_DATABASE,
-  DB_PASSWORD,
-  DB_PORT,
-} = process.env;
-
 // PostgreSQL connection pool
 const pool = new Pool({
-  user: DB_USER,
-  host: DB_HOST,
-  database: DB_DATABASE,
-  password: DB_PASSWORD,
-  port: DB_PORT,
+    user: 'ensclient',
+    host: 'ens-client.cfzb4vlbttqg.us-east-2.rds.amazonaws.com',
+    database: 'ens-client',
+    password: 'gQ9Sf8cIczKhZiCswXXy',
+    port: 5432,
+    max: 20,
+    ssl: false,
 });
 
 app.get('/', (req, res) => {
