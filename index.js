@@ -48,10 +48,10 @@ app.get('/data/:clientKey', async (req, res) => {
     const clientKey = req.params.clientKey;
 
     const pool2 = new Pool({
-        user: 'ensclient',
+        user: 'ensahost_client',
         host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
         database: 'postgres',
-        password: 'gQ9Sf8cIczKhZiCswXXy',
+        password: 'ZCK,tCI8lv4o',
         port: 5432,
         max: 20,
         ssl: {
