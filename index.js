@@ -6,6 +6,8 @@ require('dotenv').config();
 const app = express();
 const port = 3000;
 
+const year = new Date().getFullYear();
+
 // PostgreSQL connection pool
 const pool = new Pool({
     user: 'ensclient',
@@ -40,6 +42,35 @@ app.get('/client/:clientKey', async (req, res) => {
     console.error('Error executing query', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+app.get('/data/:clientKey', async (req, res) => {
+    const clientKey = req.params.clientKey;
+
+    const pool2 = new Pool({
+        user: 'ensclient',
+        host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+        database: 'postgres',
+        password: 'gQ9Sf8cIczKhZiCswXXy',
+        port: 5432,
+        max: 20,
+        ssl: {
+          rejectUnauthorized: false, // Ignore unauthorized SSL errors (not recommended for production)
+        },
+    });
+  
+    try {
+      const client = await pool2.query(`SELECT * FROM client_data_${year}`);
+  
+      if (client.rows.length === 0) {
+        res.status(404).json({ error: 'Client not found' });
+      } else {
+        res.json(client.rows[0]);
+      }
+    } catch (error) {
+      console.error('Error executing query', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 app.listen(port, () => {
