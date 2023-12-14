@@ -60,7 +60,7 @@ app.get('/data/:clientKey', async (req, res) => {
     });
   
     try {
-      const client = await pool2.query(`SELECT * FROM client_data_${year} WHERE active = "yes"`);
+      const client = await pool2.query(`SELECT * FROM client_data_${year} WHERE active = yes`);
   
       if (client.rows.length === 0) {
         res.status(404).json({ error: 'Client not found' });
