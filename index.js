@@ -73,6 +73,44 @@ app.get('/data/:clientKey', async (req, res) => {
     }
 });
 
+app.get('/count/:clientKey', async (req, res) => {
+    const clientKey = req.params.clientKey;
+
+    const pool2 = new Pool({
+        user: 'ensahost_client',
+        host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+        database: 'postgres',
+        password: 'ZCK,tCI8lv4o',
+        port: 5432,
+        max: 20,
+        ssl: {
+          rejectUnauthorized: false, // Ignore unauthorized SSL errors (not recommended for production)
+        },
+    });
+  
+    try {
+        // Get count for the current date
+        const currentDateCountResult = await pool.query(
+          `SELECT COUNT(*) FROM client_data_${year} WHERE DATE(creation_column) = CURRENT_DATE`
+        );
+        const currentDateCount = currentDateCountResult.rows[0].count;
+    
+        // Get count for all entries in the table
+        const totalCountResult = await pool.query(
+          `SELECT COUNT(*) FROM client_data_${year}`
+        );
+        const totalCount = totalCountResult.rows[0].count;
+    
+        res.json({
+          currentDateCount,
+          totalCount,
+        });
+      } catch (error) {
+        console.error('Error executing query', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
