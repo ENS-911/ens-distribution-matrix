@@ -91,9 +91,10 @@ app.get('/count/:clientKey', async (req, res) => {
     try {
         // Get count for the current date
         const currentDateCountResult = await pool.query(
-          `SELECT COUNT(*) FROM client_data_${year} WHERE DATE(creation) = CURRENT_DATE`
-        );
-        const currentDateCount = currentDateCountResult.rows[0].count;
+            "SELECT COUNT(*) FROM your_table_name WHERE SUBSTRING(creation, 1, 10) = $1",
+            [new Date().toISOString().slice(0, 10)]
+          );
+          const currentDateCount = currentDateCountResult.rows[0].count;
     
         // Get count for all entries in the table
         const totalCountResult = await pool.query(
