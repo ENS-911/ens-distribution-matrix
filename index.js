@@ -93,13 +93,13 @@ app.get('/count/:clientKey', async (req, res) => {
         const currentDateCountResult = await pool2.query(
             `SELECT COUNT(*) FROM client_data_${year}`
           );
-          const currentDateCount = currentDateCountResult.rows.count;
+          const currentDateCount = currentDateCountResult.rows[0].count;
     
         // Get count for all entries in the table
         const totalCountResult = await pool2.query(
           `SELECT COUNT(*) FROM client_data_${year}`
         );
-        const totalCount = totalCountResult.rows.count;
+        const totalCount = totalCountResult.rows[0].count;
     
         res.json({
           currentDateCount,
