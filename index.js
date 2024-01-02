@@ -103,6 +103,7 @@ app.get('/count/:clientKey', async (req, res) => {
     
         res.json({
           currentDateCount,
+          year,
           totalCount,
         });
       } catch (error) {
