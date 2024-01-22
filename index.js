@@ -36,7 +36,7 @@ app.get('/client/:clientKey', async (req, res) => {
     if (client.rows.length === 0) {
       res.status(404).json({ error: 'Client not found' });
     } else {
-      res.json(client.rows);
+      res.json(client.rows[0].plan);
     }
   } catch (error) {
     console.error('Error executing query', error);
