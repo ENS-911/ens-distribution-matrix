@@ -11,7 +11,7 @@ const year = new Date().getFullYear();
 // PostgreSQL connection pool
 const pool = new Pool({
     user: 'ensclient',
-    host: 'ens-client.cfzb4vlbttqg.us-east-2.rds.amazonaws.com',
+    host: 'ens-client-v2.cfzb4vlbttqg.us-east-2.rds.amazonaws.com',
     database: 'postgres',
     password: 'gQ9Sf8cIczKhZiCswXXy',
     port: 5432,
