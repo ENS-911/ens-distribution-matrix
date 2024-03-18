@@ -10,18 +10,20 @@ const year = new Date().getFullYear();
 
 // PostgreSQL connection pool
 const pool = new Pool({
-    user: 'ensclient',
-    host: 'ens-client-v2.cfzb4vlbttqg.us-east-2.rds.amazonaws.com',
-    database: 'postgres',
-    password: 'gQ9Sf8cIczKhZiCswXXy',
-    port: 5432,
-    max: 20,
-    ssl: {
-      rejectUnauthorized: false, // Ignore unauthorized SSL errors (not recommended for production)
-    },
+  user: 'ensclient',
+  host: 'ens-client-v2.cfzb4vlbttqg.us-east-2.rds.amazonaws.com',
+  database: 'postgres',
+  password: 'gQ9Sf8cIczKhZiCswXXy',
+  port: 5432,
+  max: 20,
+  ssl: true,
 });
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.get('/', (req, res) => {
     res.send('Hello, world!');
