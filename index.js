@@ -152,29 +152,7 @@ app.get('/today/:clientKey', async (req, res) => {
 app.get('/report/:clientKey', async (req, res) => {
   const clientKey = req.params.clientKey;
   const { dateRange, hours, startDate, endDate } = req.query;
-
-  // Return the incoming parameters for debugging
-  if (!clientKey) {
-    return res.status(400).json({ error: 'ClientKey is missing or invalid' });
-  }
-  if (!dateRange) {
-    return res.status(400).json({ error: 'Date range is missing or invalid' });
-  }
-  if (dateRange === 'selectDateRange' && (!startDate || !endDate)) {
-    return res.status(400).json({ error: 'startDate or endDate is missing for the selected date range' });
-  }
-
-  let queries = [];
-  let queryParams = [];
-  let startYear, endYear;
-
-  if (dateRange === 'selectDateRange' && startDate && endDate) {
-    startYear = new Date(startDate).getFullYear();
-    endYear = new Date(endDate).getFullYear();
-  } else {
-    startYear = currentYear;
-    endYear = currentYear;
-  }
+  const currentYear = new Date().getFullYear();
 
   const pool2 = new Pool({
     user: 'ensahost_client',
@@ -188,14 +166,29 @@ app.get('/report/:clientKey', async (req, res) => {
     },
   });
 
-  try {
+  let queries = [];
+  let queryParams = [];
+  let startYear, endYear;
 
+  // Determine the years to query based on the selected date range
+  if (dateRange === 'selectDateRange' && startDate && endDate) {
+    startYear = new Date(startDate).getFullYear();
+    endYear = new Date(endDate).getFullYear();
+  } else {
+    startYear = currentYear;
+    endYear = currentYear;
+  }
+
+  try {
     // Generate a query for each year between startYear and endYear
     for (let year = startYear; year <= endYear; year++) {
       let query = `SELECT * FROM client_data_${year} WHERE `;
 
-      // Apply filters based on dateRange
+      // Apply date range or other filters
       switch (dateRange) {
+        case 'currentActive':
+          query += "status = 'active'";
+          break;
         case 'currentDay':
           query += "DATE(creation) = CURRENT_DATE";
           break;
@@ -203,11 +196,32 @@ app.get('/report/:clientKey', async (req, res) => {
           query += "creation >= NOW() - INTERVAL '24 HOURS'";
           break;
         case 'selectHours':
-          if (!hours) {
-            return res.status(400).json({ error: 'Number of hours is missing' });
-          }
           query += "creation >= NOW() - INTERVAL $1 HOUR";
           queryParams.push(hours);
+          break;
+        case 'currentWeek':
+          query += "EXTRACT(WEEK FROM creation) = EXTRACT(WEEK FROM NOW())";
+          break;
+        case 'lastWeek':
+          query += "creation >= NOW() - INTERVAL '1 WEEK'";
+          break;
+        case 'currentMonth':
+          query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW())";
+          break;
+        case 'lastMonth':
+          query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
+          break;
+        case 'currentQuarter':
+          query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW())";
+          break;
+        case 'lastQuarter':
+          query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW() - INTERVAL '3 MONTH')";
+          break;
+        case 'currentYear':
+          query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW())";
+          break;
+        case 'lastYear':
+          query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
           break;
         case 'selectDateRange':
           if (year === startYear && year === endYear) {
@@ -222,7 +236,7 @@ app.get('/report/:clientKey', async (req, res) => {
           }
           break;
         default:
-          return res.status(400).json({ error: 'Invalid date range value' });
+          return res.status(400).json({ error: 'Invalid date range' });
       }
 
       queries.push(pool2.query(query, queryParams));
@@ -241,7 +255,8 @@ app.get('/report/:clientKey', async (req, res) => {
       return res.json(combinedResults);  // Return the combined data
     }
   } catch (error) {
-    return res.status(500).json({ error: 'Internal server error', details: error.message });
+    console.error('Error executing query', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
