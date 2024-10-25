@@ -173,22 +173,22 @@ app.get('/report/:clientKey', async (req, res) => {
       // Handle predefined date ranges (e.g., 'currentDay', 'lastWeek')
       switch (dateRange) {
         case 'currentDay':
-          query += "DATE(creation_date) = CURRENT_DATE";
+          query += "DATE(creation) = CURRENT_DATE";
           break;
         case 'last24Hours':
-          query += "creation_date >= NOW() - INTERVAL '24 HOURS'";
+          query += "creation >= NOW() - INTERVAL '24 HOURS'";
           break;
         case 'currentWeek':
-          query += "EXTRACT(WEEK FROM creation_date) = EXTRACT(WEEK FROM NOW())";
+          query += "EXTRACT(WEEK FROM creation) = EXTRACT(WEEK FROM NOW())";
           break;
         case 'currentMonth':
-          query += "EXTRACT(MONTH FROM creation_date) = EXTRACT(MONTH FROM NOW())";
+          query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW())";
           break;
         case 'lastWeek':
-          query += "creation_date >= NOW() - INTERVAL '1 WEEK'";
+          query += "creation >= NOW() - INTERVAL '1 WEEK'";
           break;
         case 'lastMonth':
-          query += "EXTRACT(MONTH FROM creation_date) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
+          query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
           break;
         // Add more predefined ranges if needed...
         default:
@@ -196,17 +196,15 @@ app.get('/report/:clientKey', async (req, res) => {
       }
     } else if (hours) {
       // Handle "Select Number of Hours" case
-      query += "creation_date >= NOW() - INTERVAL $1 HOUR";
+      query += "creation >= NOW() - INTERVAL $1 HOUR";
       queryParams.push(hours);
     } else if (startDate && endDate) {
       // Handle custom date range
-      query += "creation_date BETWEEN $1 AND $2";
+      query += "creation BETWEEN $1 AND $2";
       queryParams.push(startDate, endDate);
     } else {
       return res.status(400).json({ error: 'Invalid date range or parameters' });
     }
-
-    return res.status(999).json({ query, queryParams });
 
     const result = await pool2.query(query, queryParams);
     if (result.rows.length === 0) {
