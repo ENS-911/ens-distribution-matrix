@@ -149,6 +149,75 @@ app.get('/today/:clientKey', async (req, res) => {
       }
 });
 
+app.get('/report/:clientKey', async (req, res) => {
+  const clientKey = req.params.clientKey;
+  const { dateRange, hours, startDate, endDate } = req.query;
+
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: {
+      rejectUnauthorized: false, // Ignore unauthorized SSL errors (not recommended for production)
+    },
+  });
+
+  let query = 'SELECT * FROM client_data WHERE ';  // Adjust table name based on your schema
+  let queryParams = [];
+
+  try {
+    if (dateRange) {
+      // Handle predefined date ranges (e.g., 'currentDay', 'lastWeek')
+      switch (dateRange) {
+        case 'currentDay':
+          query += "DATE(creation_date) = CURRENT_DATE";
+          break;
+        case 'last24Hours':
+          query += "creation_date >= NOW() - INTERVAL '24 HOURS'";
+          break;
+        case 'currentWeek':
+          query += "EXTRACT(WEEK FROM creation_date) = EXTRACT(WEEK FROM NOW())";
+          break;
+        case 'currentMonth':
+          query += "EXTRACT(MONTH FROM creation_date) = EXTRACT(MONTH FROM NOW())";
+          break;
+        case 'lastWeek':
+          query += "creation_date >= NOW() - INTERVAL '1 WEEK'";
+          break;
+        case 'lastMonth':
+          query += "EXTRACT(MONTH FROM creation_date) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
+          break;
+        // Add more predefined ranges if needed...
+        default:
+          return res.status(400).json({ error: 'Invalid date range' });
+      }
+    } else if (hours) {
+      // Handle "Select Number of Hours" case
+      query += "creation_date >= NOW() - INTERVAL $1 HOUR";
+      queryParams.push(hours);
+    } else if (startDate && endDate) {
+      // Handle custom date range
+      query += "creation_date BETWEEN $1 AND $2";
+      queryParams.push(startDate, endDate);
+    } else {
+      return res.status(400).json({ error: 'Invalid date range or parameters' });
+    }
+
+    const result = await pool2.query(query, queryParams);
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'No data found for the given range' });
+    } else {
+      res.json(result.rows);  // Return filtered data
+    }
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
