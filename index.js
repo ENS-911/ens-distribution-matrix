@@ -168,8 +168,6 @@ app.get('/report/:clientKey', async (req, res) => {
   let query = `SELECT * FROM client_data_${year} WHERE `;  // Adjust table name based on your schema
   let queryParams = [];
 
-  return query;
-
   try {
     if (dateRange) {
       // Handle predefined date ranges (e.g., 'currentDay', 'lastWeek')
