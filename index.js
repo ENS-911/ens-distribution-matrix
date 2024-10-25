@@ -165,7 +165,7 @@ app.get('/report/:clientKey', async (req, res) => {
     },
   });
 
-  let query = 'SELECT * FROM client_data WHERE ';  // Adjust table name based on your schema
+  let query = `SELECT * FROM client_data_${year} WHERE `;  // Adjust table name based on your schema
   let queryParams = [];
 
   try {
