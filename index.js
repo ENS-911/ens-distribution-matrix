@@ -164,7 +164,8 @@ app.get('/report/:clientKey', async (req, res) => {
     return res.status(400).json({ error: 'startDate or endDate is missing for the selected date range' });
   }
 
-  const currentYear = new Date().getFullYear();
+  let queries = [];
+  let queryParams = [];
   let startYear, endYear;
 
   if (dateRange === 'selectDateRange' && startDate && endDate) {
@@ -188,8 +189,6 @@ app.get('/report/:clientKey', async (req, res) => {
   });
 
   try {
-    let queries = [];
-    let queryParams = [];
 
     // Generate a query for each year between startYear and endYear
     for (let year = startYear; year <= endYear; year++) {
