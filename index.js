@@ -206,6 +206,8 @@ app.get('/report/:clientKey', async (req, res) => {
       return res.status(400).json({ error: 'Invalid date range or parameters' });
     }
 
+    return res.status(999).json({ query, queryParams });
+
     const result = await pool2.query(query, queryParams);
     if (result.rows.length === 0) {
       res.status(404).json({ error: 'No data found for the given range' });
