@@ -268,8 +268,10 @@ app.get('/report/:clientKey', async (req, res) => {
           query += "creation::DATE >= $1::DATE";  // Cast creation and startDate to DATE
           queryParams.push(startDate);
         } else if (year === endYear) {
-          query += "creation::DATE <= $2::DATE";  // Cast creation and endDate to DATE
+          query += "creation::DATE <= $1::DATE";  // Now push endDate to $1 for final year
           queryParams.push(endDate);
+        } else {
+          query += "1 = 1";  // For intermediate years, fetch all records
         }
       } else {
         console.log('Invalid request. Missing date range or start/end dates.');
