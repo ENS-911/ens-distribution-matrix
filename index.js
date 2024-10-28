@@ -184,7 +184,7 @@ app.get('/report/:clientKey', async (req, res) => {
       let queryParams = [];  // Reset queryParams for each year
 
       console.log('Received dateRange:', dateRange);
-    
+
       if (dateRange) {
         // Handle predefined date ranges
         switch (dateRange) {
@@ -193,16 +193,16 @@ app.get('/report/:clientKey', async (req, res) => {
             break;
 
           case 'currentDay':
-            query += "DATE(creation) = CURRENT_DATE";
+            query += "DATE(creation::DATE) = CURRENT_DATE";  // Cast creation to DATE
             break;
 
           case 'last24Hours':
-            query += "creation >= NOW() - INTERVAL '24 HOURS'";
+            query += "creation::TIMESTAMP >= NOW() - INTERVAL '24 HOURS'";  // Cast to TIMESTAMP for this case
             break;
 
           case 'selectHours':
             if (hours) {
-              query += "creation >= NOW() - INTERVAL $1 HOUR";
+              query += "creation::TIMESTAMP >= NOW() - INTERVAL $1 HOUR";  // Cast to TIMESTAMP for this case
               queryParams.push(hours);
             } else {
               return res.status(400).json({ error: 'Hours parameter is missing' });
@@ -210,35 +210,35 @@ app.get('/report/:clientKey', async (req, res) => {
             break;
 
           case 'currentWeek':
-            query += "EXTRACT(WEEK FROM creation) = EXTRACT(WEEK FROM NOW())";
+            query += "EXTRACT(WEEK FROM creation::DATE) = EXTRACT(WEEK FROM NOW())";  // Cast to DATE
             break;
 
           case 'lastWeek':
-            query += "creation >= NOW() - INTERVAL '1 WEEK'";
+            query += "creation::TIMESTAMP >= NOW() - INTERVAL '1 WEEK'";  // Cast to TIMESTAMP
             break;
 
           case 'currentMonth':
-            query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW())";
+            query += "EXTRACT(MONTH FROM creation::DATE) = EXTRACT(MONTH FROM NOW())";  // Cast to DATE
             break;
 
           case 'lastMonth':
-            query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
+            query += "EXTRACT(MONTH FROM creation::DATE) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";  // Cast to DATE
             break;
 
           case 'currentQuarter':
-            query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW())";
+            query += "EXTRACT(QUARTER FROM creation::DATE) = EXTRACT(QUARTER FROM NOW())";  // Cast to DATE
             break;
 
           case 'lastQuarter':
-            query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW() - INTERVAL '3 MONTH')";
+            query += "EXTRACT(QUARTER FROM creation::DATE) = EXTRACT(QUARTER FROM NOW() - INTERVAL '3 MONTH')";  // Cast to DATE
             break;
 
           case 'currentYear':
-            query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW())";
+            query += "EXTRACT(YEAR FROM creation::DATE) = EXTRACT(YEAR FROM NOW())";  // Cast to DATE
             break;
 
           case 'lastYear':
-            query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
+            query += "EXTRACT(YEAR FROM creation::DATE) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";  // Cast to DATE
             break;
 
           default:
@@ -260,15 +260,15 @@ app.get('/report/:clientKey', async (req, res) => {
           return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
         }
 
-        // Cast startDate and endDate to DATE type using `::DATE`
+        // Cast creation to DATE for comparison
         if (year === startYear && year === endYear) {
-          query += "creation BETWEEN $1::DATE AND $2::DATE";
+          query += "creation::DATE BETWEEN $1::DATE AND $2::DATE";  // Cast creation and params to DATE
           queryParams.push(startDate, endDate);
         } else if (year === startYear) {
-          query += "creation >= $1::DATE";
+          query += "creation::DATE >= $1::DATE";  // Cast creation and startDate to DATE
           queryParams.push(startDate);
         } else if (year === endYear) {
-          query += "creation <= $2::DATE";
+          query += "creation::DATE <= $2::DATE";  // Cast creation and endDate to DATE
           queryParams.push(endDate);
         }
       } else {
