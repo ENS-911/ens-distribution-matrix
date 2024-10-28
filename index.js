@@ -167,7 +167,7 @@ app.get('/report/:clientKey', async (req, res) => {
   });
 
   let queries = [];
-  let queryParams = [];
+  //let queryParams = [];
   let startYear, endYear;
 
   // Determine the years to query based on the selected date range
@@ -238,22 +238,28 @@ app.get('/report/:clientKey', async (req, res) => {
           query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
           break;
     
-        case 'selectDateRange':
-          if (startDate && endDate) {
-            if (year === startYear && year === endYear) {
-              query += "creation BETWEEN $1 AND $2";
-              queryParams.push(startDate, endDate);
-            } else if (year === startYear) {
-              query += "creation >= $1";
-              queryParams.push(startDate);
-            } else if (year === endYear) {
-              query += "creation <= $2";
-              queryParams.push(endDate);
+          case 'selectDateRange':
+            if (startDate && endDate) {
+              const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
+              const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
+              if (!isValidStartDate || !isValidEndDate) {
+                return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
+              }
+              // Query logic for date range
+              if (year === startYear && year === endYear) {
+                query += "creation BETWEEN $1 AND $2";
+                queryParams.push(startDate, endDate);
+              } else if (year === startYear) {
+                query += "creation >= $1";
+                queryParams.push(startDate);
+              } else if (year === endYear) {
+                query += "creation <= $2";
+                queryParams.push(endDate);
+              }
+            } else {
+              return res.status(400).json({ error: 'Start and End date parameters are missing' });
             }
-          } else {
-            return res.status(400).json({ error: 'Start and End date parameters are missing' });
-          }
-          break;
+            break;          
     
         default:
           return res.status(400).json({ error: 'Invalid date range' });
