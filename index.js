@@ -183,8 +183,8 @@ app.get('/report/:clientKey', async (req, res) => {
     // Generate a query for each year between startYear and endYear
     for (let year = startYear; year <= endYear; year++) {
       let query = `SELECT * FROM client_data_${year} WHERE `;
-
-      // Apply date range or other filters
+      let queryParams = [];  // Reset queryParams for each year
+    
       switch (dateRange) {
         case 'currentActive':
           query += "status = 'active'";
@@ -238,9 +238,9 @@ app.get('/report/:clientKey', async (req, res) => {
         default:
           return res.status(400).json({ error: 'Invalid date range' });
       }
-
-      queries.push(pool2.query(query, queryParams));
-    }
+    
+      queries.push(pool2.query(query, queryParams));  // Push the query with the corresponding parameters
+    }    
 
     // Execute all queries and combine the results
     const results = await Promise.all(queries);
