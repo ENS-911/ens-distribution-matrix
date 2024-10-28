@@ -188,8 +188,7 @@ app.get('/report/:clientKey', async (req, res) => {
 
       if (hours) {
         // Handle the 'hours' parameter independently
-        query += "creation::TIMESTAMP >= NOW() - INTERVAL $1 HOUR";  // Cast to TIMESTAMP for this case
-        queryParams.push(hours);
+        query += `creation::TIMESTAMP >= NOW() - INTERVAL '${hours} HOURS'`;
       } else if (dateRange) {
         // Handle predefined date ranges
         switch (dateRange) {
