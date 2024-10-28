@@ -238,31 +238,40 @@ app.get('/report/:clientKey', async (req, res) => {
           query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
           break;
   
-        case 'selectDateRange':
-          if (startDate && endDate) {
-            const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
-            const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
-            if (!isValidStartDate || !isValidEndDate) {
-              return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
+          case 'selectDateRange':
+            if (startDate && endDate) {
+              const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
+              const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
+          
+              console.log('Received startDate:', startDate);
+              console.log('Received endDate:', endDate);
+              console.log('Is valid startDate:', isValidStartDate);
+              console.log('Is valid endDate:', isValidEndDate);
+          
+              if (!isValidStartDate || !isValidEndDate) {
+                return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
+              }
+          
+              // Proceed with the query logic if validation passes
+              if (year === startYear && year === endYear) {
+                query += "creation BETWEEN $1::DATE AND $2::DATE";
+                queryParams.push(startDate, endDate);
+              } else if (year === startYear) {
+                query += "creation >= $1::DATE";
+                queryParams.push(startDate);
+              } else if (year === endYear) {
+                query += "creation <= $2::DATE";
+                queryParams.push(endDate);
+              }
+            } else {
+              console.log('Missing startDate or endDate');
+              return res.status(400).json({ error: 'Start and End date parameters are missing' });
             }
-  
-            // Casting startDate and endDate as DATE in the query
-            if (year === startYear && year === endYear) {
-              query += "creation BETWEEN $1::DATE AND $2::DATE";
-              queryParams.push(startDate, endDate);
-            } else if (year === startYear) {
-              query += "creation >= $1::DATE";
-              queryParams.push(startDate);
-            } else if (year === endYear) {
-              query += "creation <= $2::DATE";
-              queryParams.push(endDate);
-            }
-          } else {
-            return res.status(400).json({ error: 'Start and End date parameters are missing' });
-          }
-          break;
+            break;
+          
   
         default:
+          console.log('I falling into default')
           return res.status(400).json({ error: 'Invalid date range' });
       }
   
