@@ -188,7 +188,7 @@ app.get('/report/:clientKey', async (req, res) => {
 
       if (hours) {
         // Handle the 'hours' parameter independently
-        query += `creation >= NOW() AT TIME ZONE 'America/New_York' - INTERVAL '${hours} HOUR'`;
+        query += `creation::TIMESTAMP >= NOW() AT TIME ZONE 'America/New_York' - INTERVAL '${hours} HOUR'`;
       } else if (dateRange) {
         // Handle predefined date ranges
         switch (dateRange) {
