@@ -245,6 +245,9 @@ app.get('/report/:clientKey', async (req, res) => {
               if (!isValidStartDate || !isValidEndDate) {
                 return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
               }
+              console.log(`Executing Query: ${query}`);
+              console.log(`Query Params: ${queryParams}`);
+
               // Query logic for date range
               if (year === startYear && year === endYear) {
                 query += "creation BETWEEN $1 AND $2";
