@@ -193,7 +193,7 @@ app.get('/report/:clientKey', async (req, res) => {
         // Handle predefined date ranges
         switch (dateRange) {
           case 'currentActive':
-            query += "status = 'active'";
+            query += "active = 'yes'";
             break;
 
           case 'currentDay':
