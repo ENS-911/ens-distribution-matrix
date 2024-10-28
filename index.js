@@ -183,6 +183,8 @@ app.get('/report/:clientKey', async (req, res) => {
     for (let year = startYear; year <= endYear; year++) {
       let query = `SELECT * FROM client_data_${year} WHERE `;
       let queryParams = [];  // Reset queryParams for each year
+
+      console.log('Received dateRange:', dateRange);
     
       switch (dateRange) {
         case 'currentActive':
@@ -271,7 +273,8 @@ app.get('/report/:clientKey', async (req, res) => {
           
   
         default:
-          console.log('I falling into default')
+          console.log('Unknown dateRange:', dateRange);
+          console.log('Request Query Parameters:', req.query);
           return res.status(400).json({ error: 'Invalid date range' });
       }
   
