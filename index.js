@@ -184,8 +184,13 @@ app.get('/report/:clientKey', async (req, res) => {
       let queryParams = [];  // Reset queryParams for each year
 
       console.log('Received dateRange:', dateRange);
+      console.log('Received hours:', hours);
 
-      if (dateRange) {
+      if (hours) {
+        // Handle the 'hours' parameter independently
+        query += "creation::TIMESTAMP >= NOW() - INTERVAL $1 HOUR";  // Cast to TIMESTAMP for this case
+        queryParams.push(hours);
+      } else if (dateRange) {
         // Handle predefined date ranges
         switch (dateRange) {
           case 'currentActive':
@@ -198,15 +203,6 @@ app.get('/report/:clientKey', async (req, res) => {
 
           case 'last24Hours':
             query += "creation::TIMESTAMP >= NOW() - INTERVAL '24 HOURS'";  // Cast to TIMESTAMP for this case
-            break;
-
-          case 'selectHours':
-            if (hours) {
-              query += "creation::TIMESTAMP >= NOW() - INTERVAL $1 HOUR";  // Cast to TIMESTAMP for this case
-              queryParams.push(hours);
-            } else {
-              return res.status(400).json({ error: 'Hours parameter is missing' });
-            }
             break;
 
           case 'currentWeek':
@@ -241,41 +237,48 @@ app.get('/report/:clientKey', async (req, res) => {
             query += "EXTRACT(YEAR FROM creation::DATE) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";  // Cast to DATE
             break;
 
+          case 'selectDateRange':
+            // Handle custom date range
+            if (startDate && endDate) {
+              const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
+              const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
+
+              console.log('Received startDate:', startDate);
+              console.log('Received endDate:', endDate);
+              console.log('Is valid startDate:', isValidStartDate);
+              console.log('Is valid endDate:', isValidEndDate);
+
+              if (!isValidStartDate || !isValidEndDate) {
+                return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
+              }
+
+              // Cast creation to DATE for comparison
+              if (year === startYear && year === endYear) {
+                query += "creation::DATE BETWEEN $1::DATE AND $2::DATE";  // Cast creation and params to DATE
+                queryParams.push(startDate, endDate);
+              } else if (year === startYear) {
+                query += "creation::DATE >= $1::DATE";  // Cast creation and startDate to DATE
+                queryParams.push(startDate);
+              } else if (year === endYear) {
+                query += "creation::DATE <= $1::DATE";  // Now push endDate to $1 for final year
+                queryParams.push(endDate);
+              } else {
+                query += "1 = 1";  // For intermediate years, fetch all records
+              }
+            } else {
+              console.log('Missing startDate or endDate');
+              return res.status(400).json({ error: 'Start and End date parameters are missing' });
+            }
+            break;
+
           default:
             console.log('Unknown dateRange:', dateRange);
             console.log('Request Query Parameters:', req.query);
             return res.status(400).json({ error: 'Invalid date range' });
         }
-      } else if (startDate && endDate) {
-        // Handle custom date range
-        const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
-        const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
-
-        console.log('Received startDate:', startDate);
-        console.log('Received endDate:', endDate);
-        console.log('Is valid startDate:', isValidStartDate);
-        console.log('Is valid endDate:', isValidEndDate);
-
-        if (!isValidStartDate || !isValidEndDate) {
-          return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
-        }
-
-        // Cast creation to DATE for comparison
-        if (year === startYear && year === endYear) {
-          query += "creation::DATE BETWEEN $1::DATE AND $2::DATE";  // Cast creation and params to DATE
-          queryParams.push(startDate, endDate);
-        } else if (year === startYear) {
-          query += "creation::DATE >= $1::DATE";  // Cast creation and startDate to DATE
-          queryParams.push(startDate);
-        } else if (year === endYear) {
-          query += "creation::DATE <= $1::DATE";  // Now push endDate to $1 for final year
-          queryParams.push(endDate);
-        } else {
-          query += "1 = 1";  // For intermediate years, fetch all records
-        }
       } else {
         console.log('Invalid request. Missing date range or start/end dates.');
-        return res.status(400).json({ error: 'Invalid request. Missing date range or start/end dates.' });
+        return res.status(400).json({ error: 'Invalid request. Missing date range, hours, or start/end dates.' });
       }
 
       // Log generated queries for debugging
