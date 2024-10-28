@@ -180,7 +180,6 @@ app.get('/report/:clientKey', async (req, res) => {
   }
 
   try {
-    // Generate a query for each year between startYear and endYear
     for (let year = startYear; year <= endYear; year++) {
       let query = `SELECT * FROM client_data_${year} WHERE `;
       let queryParams = [];  // Reset queryParams for each year
@@ -189,58 +188,84 @@ app.get('/report/:clientKey', async (req, res) => {
         case 'currentActive':
           query += "status = 'active'";
           break;
+    
         case 'currentDay':
           query += "DATE(creation) = CURRENT_DATE";
           break;
+    
         case 'last24Hours':
           query += "creation >= NOW() - INTERVAL '24 HOURS'";
           break;
+    
         case 'selectHours':
-          query += "creation >= NOW() - INTERVAL $1 HOUR";
-          queryParams.push(hours);
+          if (hours) {
+            query += "creation >= NOW() - INTERVAL $1 HOUR";
+            queryParams.push(hours);
+          } else {
+            return res.status(400).json({ error: 'Hours parameter is missing' });
+          }
           break;
+    
         case 'currentWeek':
           query += "EXTRACT(WEEK FROM creation) = EXTRACT(WEEK FROM NOW())";
           break;
+    
         case 'lastWeek':
           query += "creation >= NOW() - INTERVAL '1 WEEK'";
           break;
+    
         case 'currentMonth':
           query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW())";
           break;
+    
         case 'lastMonth':
           query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
           break;
+    
         case 'currentQuarter':
           query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW())";
           break;
+    
         case 'lastQuarter':
           query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW() - INTERVAL '3 MONTH')";
           break;
+    
         case 'currentYear':
           query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW())";
           break;
+    
         case 'lastYear':
           query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
           break;
+    
         case 'selectDateRange':
-          if (year === startYear && year === endYear) {
-            query += "creation BETWEEN $1 AND $2";
-            queryParams.push(startDate, endDate);
-          } else if (year === startYear) {
-            query += "creation >= $1";
-            queryParams.push(startDate);
-          } else if (year === endYear) {
-            query += "creation <= $2";
-            queryParams.push(endDate);
+          if (startDate && endDate) {
+            if (year === startYear && year === endYear) {
+              query += "creation BETWEEN $1 AND $2";
+              queryParams.push(startDate, endDate);
+            } else if (year === startYear) {
+              query += "creation >= $1";
+              queryParams.push(startDate);
+            } else if (year === endYear) {
+              query += "creation <= $2";
+              queryParams.push(endDate);
+            }
+          } else {
+            return res.status(400).json({ error: 'Start and End date parameters are missing' });
           }
           break;
+    
         default:
           return res.status(400).json({ error: 'Invalid date range' });
       }
     
+      // Log generated queries for debugging
+      console.log(`Generated Query for Year ${year}:`, query);
+      console.log(`Query Params for Year ${year}:`, queryParams);
+    
+      // Add the query to the list
       queries.push(pool2.query(query, queryParams));  // Push the query with the corresponding parameters
-    }    
+    }      
 
     // Execute all queries and combine the results
     const results = await Promise.all(queries);
