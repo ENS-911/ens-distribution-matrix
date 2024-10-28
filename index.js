@@ -237,52 +237,50 @@ app.get('/report/:clientKey', async (req, res) => {
         case 'lastYear':
           query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
           break;
-    
-          case 'selectDateRange':
-            if (startDate && endDate) {
-              const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
-              const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
-              if (!isValidStartDate || !isValidEndDate) {
-                return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
-              }
-              console.log(`Executing Query: ${query}`);
-              console.log(`Query Params: ${queryParams}`);
-
-              // Query logic for date range
-              if (year === startYear && year === endYear) {
-                query += "creation BETWEEN $1 AND $2";
-                queryParams.push(startDate, endDate);
-              } else if (year === startYear) {
-                query += "creation >= $1";
-                queryParams.push(startDate);
-              } else if (year === endYear) {
-                query += "creation <= $2";
-                queryParams.push(endDate);
-              }
-            } else {
-              return res.status(400).json({ error: 'Start and End date parameters are missing' });
+  
+        case 'selectDateRange':
+          if (startDate && endDate) {
+            const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
+            const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
+            if (!isValidStartDate || !isValidEndDate) {
+              return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
             }
-            break;          
-    
+  
+            // Casting startDate and endDate as DATE in the query
+            if (year === startYear && year === endYear) {
+              query += "creation BETWEEN $1::DATE AND $2::DATE";
+              queryParams.push(startDate, endDate);
+            } else if (year === startYear) {
+              query += "creation >= $1::DATE";
+              queryParams.push(startDate);
+            } else if (year === endYear) {
+              query += "creation <= $2::DATE";
+              queryParams.push(endDate);
+            }
+          } else {
+            return res.status(400).json({ error: 'Start and End date parameters are missing' });
+          }
+          break;
+  
         default:
           return res.status(400).json({ error: 'Invalid date range' });
       }
-    
+  
       // Log generated queries for debugging
       console.log(`Generated Query for Year ${year}:`, query);
       console.log(`Query Params for Year ${year}:`, queryParams);
-    
+  
       // Add the query to the list
       queries.push(pool2.query(query, queryParams));  // Push the query with the corresponding parameters
-    }      
-
+    }
+  
     // Execute all queries and combine the results
     const results = await Promise.all(queries);
     let combinedResults = [];
     results.forEach(result => {
       combinedResults = combinedResults.concat(result.rows);
     });
-
+  
     if (combinedResults.length === 0) {
       return res.status(404).json({ error: 'No data found for the given range' });
     } else {
@@ -292,6 +290,7 @@ app.get('/report/:clientKey', async (req, res) => {
     console.error('Error executing query', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
+  
 });
 
 app.listen(port, () => {
