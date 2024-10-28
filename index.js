@@ -169,8 +169,8 @@ app.get('/report/:clientKey', async (req, res) => {
   let queries = [];
   let startYear, endYear;
 
-  // Determine the years to query based on the selected date range or custom date range
-  if (dateRange === 'selectDateRange' && startDate && endDate) {
+  // Determine the years to query based on the custom date range or current year
+  if (startDate && endDate) {
     startYear = new Date(startDate).getFullYear();
     endYear = new Date(endDate).getFullYear();
   } else {
@@ -185,95 +185,95 @@ app.get('/report/:clientKey', async (req, res) => {
 
       console.log('Received dateRange:', dateRange);
     
-      switch (dateRange) {
-        case 'currentActive':
-          query += "status = 'active'";
-          break;
+      if (dateRange) {
+        // Handle predefined date ranges
+        switch (dateRange) {
+          case 'currentActive':
+            query += "status = 'active'";
+            break;
 
-        case 'currentDay':
-          query += "DATE(creation) = CURRENT_DATE";
-          break;
+          case 'currentDay':
+            query += "DATE(creation) = CURRENT_DATE";
+            break;
 
-        case 'last24Hours':
-          query += "creation >= NOW() - INTERVAL '24 HOURS'";
-          break;
+          case 'last24Hours':
+            query += "creation >= NOW() - INTERVAL '24 HOURS'";
+            break;
 
-        case 'selectHours':
-          if (hours) {
-            query += "creation >= NOW() - INTERVAL $1 HOUR";
-            queryParams.push(hours);
-          } else {
-            return res.status(400).json({ error: 'Hours parameter is missing' });
-          }
-          break;
-
-        case 'currentWeek':
-          query += "EXTRACT(WEEK FROM creation) = EXTRACT(WEEK FROM NOW())";
-          break;
-
-        case 'lastWeek':
-          query += "creation >= NOW() - INTERVAL '1 WEEK'";
-          break;
-
-        case 'currentMonth':
-          query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW())";
-          break;
-
-        case 'lastMonth':
-          query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
-          break;
-
-        case 'currentQuarter':
-          query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW())";
-          break;
-
-        case 'lastQuarter':
-          query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW() - INTERVAL '3 MONTH')";
-          break;
-
-        case 'currentYear':
-          query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW())";
-          break;
-
-        case 'lastYear':
-          query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
-          break;
-
-        case 'selectDateRange':
-          if (startDate && endDate) {
-            const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
-            const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
-          
-            console.log('Received startDate:', startDate);
-            console.log('Received endDate:', endDate);
-            console.log('Is valid startDate:', isValidStartDate);
-            console.log('Is valid endDate:', isValidEndDate);
-          
-            if (!isValidStartDate || !isValidEndDate) {
-              return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
+          case 'selectHours':
+            if (hours) {
+              query += "creation >= NOW() - INTERVAL $1 HOUR";
+              queryParams.push(hours);
+            } else {
+              return res.status(400).json({ error: 'Hours parameter is missing' });
             }
-          
-            // Handle queries based on year range
-            if (year === startYear && year === endYear) {
-              query += "creation BETWEEN $1::DATE AND $2::DATE";
-              queryParams.push(startDate, endDate);
-            } else if (year === startYear) {
-              query += "creation >= $1::DATE";
-              queryParams.push(startDate);
-            } else if (year === endYear) {
-              query += "creation <= $2::DATE";
-              queryParams.push(endDate);
-            }
-          } else {
-            console.log('Missing startDate or endDate');
-            return res.status(400).json({ error: 'Start and End date parameters are missing' });
-          }
-          break;
-          
-        default:
-          console.log('Unknown dateRange:', dateRange);
-          console.log('Request Query Parameters:', req.query);
-          return res.status(400).json({ error: 'Invalid date range' });
+            break;
+
+          case 'currentWeek':
+            query += "EXTRACT(WEEK FROM creation) = EXTRACT(WEEK FROM NOW())";
+            break;
+
+          case 'lastWeek':
+            query += "creation >= NOW() - INTERVAL '1 WEEK'";
+            break;
+
+          case 'currentMonth':
+            query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW())";
+            break;
+
+          case 'lastMonth':
+            query += "EXTRACT(MONTH FROM creation) = EXTRACT(MONTH FROM NOW() - INTERVAL '1 MONTH')";
+            break;
+
+          case 'currentQuarter':
+            query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW())";
+            break;
+
+          case 'lastQuarter':
+            query += "EXTRACT(QUARTER FROM creation) = EXTRACT(QUARTER FROM NOW() - INTERVAL '3 MONTH')";
+            break;
+
+          case 'currentYear':
+            query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW())";
+            break;
+
+          case 'lastYear':
+            query += "EXTRACT(YEAR FROM creation) = EXTRACT(YEAR FROM NOW() - INTERVAL '1 YEAR')";
+            break;
+
+          default:
+            console.log('Unknown dateRange:', dateRange);
+            console.log('Request Query Parameters:', req.query);
+            return res.status(400).json({ error: 'Invalid date range' });
+        }
+      } else if (startDate && endDate) {
+        // Handle custom date range
+        const isValidStartDate = /^\d{4}-\d{2}-\d{2}$/.test(startDate);
+        const isValidEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate);
+
+        console.log('Received startDate:', startDate);
+        console.log('Received endDate:', endDate);
+        console.log('Is valid startDate:', isValidStartDate);
+        console.log('Is valid endDate:', isValidEndDate);
+
+        if (!isValidStartDate || !isValidEndDate) {
+          return res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
+        }
+
+        // Proceed with the query logic if validation passes
+        if (year === startYear && year === endYear) {
+          query += "creation BETWEEN $1::DATE AND $2::DATE";
+          queryParams.push(startDate, endDate);
+        } else if (year === startYear) {
+          query += "creation >= $1::DATE";
+          queryParams.push(startDate);
+        } else if (year === endYear) {
+          query += "creation <= $2::DATE";
+          queryParams.push(endDate);
+        }
+      } else {
+        console.log('Invalid request. Missing date range or start/end dates.');
+        return res.status(400).json({ error: 'Invalid request. Missing date range or start/end dates.' });
       }
 
       // Log generated queries for debugging
@@ -283,14 +283,14 @@ app.get('/report/:clientKey', async (req, res) => {
       // Add the query to the list
       queries.push(pool2.query(query, queryParams));  // Push the query with the corresponding parameters
     }
-  
+
     // Execute all queries and combine the results
     const results = await Promise.all(queries);
     let combinedResults = [];
     results.forEach(result => {
       combinedResults = combinedResults.concat(result.rows);
     });
-  
+
     if (combinedResults.length === 0) {
       return res.status(404).json({ error: 'No data found for the given range' });
     } else {
@@ -301,7 +301,6 @@ app.get('/report/:clientKey', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
