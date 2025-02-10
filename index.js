@@ -78,6 +78,7 @@ app.get('/data/:clientKey', async (req, res) => {
 
 app.get('/count/:clientKey', async (req, res) => {
     const clientKey = req.params.clientKey;
+    const year = new Date().getFullYear();
 
     const pool2 = new Pool({
       user: 'ensahost_client',
