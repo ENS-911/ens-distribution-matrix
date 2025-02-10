@@ -104,11 +104,17 @@ app.get('/count/:clientKey', async (req, res) => {
           `SELECT COUNT(*) FROM client_data_${year}`
         );
         const totalCount = totalCountResult.rows[0].count;
+
+        const activeCountResult = await pool2.query(
+          `SELECT COUNT(*) FROM client_data_${year} WHERE active = yes`
+        );
+        const activeCount = activeCountResult.rows[0].count;
     
         res.json({
           currentDateCount,
           year,
           totalCount,
+          activeCount,
         });
       } catch (error) {
         console.error('Error executing query', error);
