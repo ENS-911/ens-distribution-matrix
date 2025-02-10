@@ -6,8 +6,6 @@ require('dotenv').config();
 const app = express();
 const port = 3000;
 
-const year = new Date().getFullYear();
-
 // PostgreSQL connection pool
 const pool = new Pool({
   user: 'ensclient',
@@ -50,6 +48,7 @@ app.get('/client/:clientKey', async (req, res) => {
 
 app.get('/data/:clientKey', async (req, res) => {
     const clientKey = req.params.clientKey;
+    const year = new Date().getFullYear();
 
     const pool2 = new Pool({
       user: 'ensahost_client',
@@ -118,6 +117,7 @@ app.get('/count/:clientKey', async (req, res) => {
 
 app.get('/today/:clientKey', async (req, res) => {
     const clientKey = req.params.clientKey;
+    const year = new Date().getFullYear();
 
     const pool2 = new Pool({
       user: 'ensahost_client',
