@@ -68,7 +68,7 @@ app.get('/data/:clientKey', async (req, res) => {
     // Build query with filter
     let query = `SELECT * FROM client_data_${year} WHERE active = 'yes'`;
     if (filterCondition) {
-      query += ` WHERE NOT (${filterCondition})`;  // Exclude records matching the filter
+      query += ` AND NOT (${filterCondition})`;  // Exclude records matching the filter
     }
 
     const dataResult = await pool2.query(query);
