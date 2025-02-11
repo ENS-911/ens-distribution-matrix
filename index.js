@@ -47,33 +47,36 @@ app.get('/client/:clientKey', async (req, res) => {
 });
 
 app.get('/data/:clientKey', async (req, res) => {
-    const clientKey = req.params.clientKey;
-    const year = new Date().getFullYear();
+  const { clientKey } = req.params;
+  const year = new Date().getFullYear();
 
-    const pool2 = new Pool({
-      user: 'ensahost_client',
-      host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
-      database: 'postgres',
-      password: 'ZCK,tCI8lv4o',
-      port: 5432,
-      max: 20,
-      ssl: {
-        rejectUnauthorized: false, // Ignore unauthorized SSL errors (not recommended for production)
-      },
-    });
-  
-    try {
-      const client = await pool2.query(`SELECT * FROM client_data_${year} WHERE active = 'yes'`);
-  
-      if (client.rows.length === 0) {
-        res.status(404).json({ error: 'Client not found' });
-      } else {
-        res.json(client.rows);
-      }
-    } catch (error) {
-      console.error('Error executing query', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    // Retrieve filter string
+    const filterResult = await pool2.query('SELECT remove_from_public FROM settings LIMIT 1');
+    const filterCondition = filterResult.rows[0]?.remove_from_public || '';
+
+    // Build query with filter
+    let query = `SELECT * FROM client_data_${year} WHERE active = 'yes'`;
+    if (filterCondition) {
+      query += ` WHERE NOT (${filterCondition})`;  // Exclude records matching the filter
     }
+
+    const dataResult = await pool2.query(query);
+    res.json(dataResult.rows);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.get('/count/:clientKey', async (req, res) => {
@@ -312,6 +315,97 @@ app.get('/report/:clientKey', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.post('/api/save-filter/:clientKey', express.json(), async (req, res) => {
+  const { clientKey } = req.params;
+  const { column, value } = req.body;
+
+  if (!column || !value) {
+    return res.status(400).json({ error: 'Column and value are required' });
+  }
+
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    // Retrieve existing filter string
+    const result = await pool2.query('SELECT remove_from_public FROM settings LIMIT 1');
+    let existingFilter = result.rows[0]?.remove_from_public || '';
+
+    // Append new condition
+    const newCondition = `${column} = '${value}'`;
+    const updatedFilter = existingFilter ? `${existingFilter} AND ${newCondition}` : newCondition;
+
+    // Update settings table
+    await pool2.query('UPDATE settings SET remove_from_public = $1', [updatedFilter]);
+    res.status(200).json({ message: 'Filter saved successfully' });
+  } catch (error) {
+    console.error('Error saving filter:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/get-saved-filters/:clientKey', async (req, res) => {
+  const { clientKey } = req.params;
+
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    const result = await pool2.query('SELECT remove_from_public FROM settings LIMIT 1');
+    const filterString = result.rows[0]?.remove_from_public || '';
+    res.json({ filterString });
+  } catch (error) {
+    console.error('Error fetching filter:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/remove-filter/:clientKey', express.json(), async (req, res) => {
+  const { clientKey } = req.params;
+  const { column, value } = req.body;
+
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    const result = await pool2.query('SELECT remove_from_public FROM settings LIMIT 1');
+    let filterString = result.rows[0]?.remove_from_public || '';
+
+    const conditionToRemove = `${column} = '${value}'`;
+    const conditions = filterString.split(' AND ').filter(cond => cond.trim() !== conditionToRemove);
+
+    const updatedFilter = conditions.join(' AND ');
+
+    await pool2.query('UPDATE settings SET remove_from_public = $1', [updatedFilter]);
+    res.status(200).json({ message: 'Filter removed successfully' });
+  } catch (error) {
+    console.error('Error removing filter:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
