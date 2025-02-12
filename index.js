@@ -322,7 +322,11 @@ app.post('/api/save-filter/:clientKey', express.json(), async (req, res) => {
   const { clientKey } = req.params;
   const { filterString } = req.body;
 
+  console.log('Received request to save filter for client:', clientKey);
+  console.log('Filter string received:', filterString);
+
   if (typeof filterString !== 'string') {
+    console.error('Invalid filter string format:', filterString);
     return res.status(400).json({ error: 'Invalid filter string' });
   }
 
@@ -337,8 +341,18 @@ app.post('/api/save-filter/:clientKey', express.json(), async (req, res) => {
   });
 
   try {
-    // Replace the existing filter string in the settings table
-    await pool2.query('UPDATE settings SET remove_from_public = $1', [filterString]);
+    // Log connection success
+    console.log('Database connection established.');
+
+    // Update settings table
+    const updateResult = await pool2.query('UPDATE settings SET remove_from_public = $1', [filterString]);
+
+    console.log('Rows affected by update:', updateResult.rowCount);  // Should be 1 if successful
+
+    if (updateResult.rowCount === 0) {
+      console.warn('Update query ran but did not affect any rows.');
+    }
+
     res.status(200).json({ message: 'Filter string updated successfully' });
   } catch (error) {
     console.error('Error saving filter string:', error);
