@@ -411,9 +411,9 @@ app.post('/api/remove-filter/:clientKey', express.json(), async (req, res) => {
     let filterString = result.rows[0]?.remove_from_public || '';
 
     const conditionToRemove = `${column} = '${value}'`;
-    const conditions = filterString.split(' AND ').filter(cond => cond.trim() !== conditionToRemove);
+    const conditions = filterString.split(' OR ').filter(cond => cond.trim() !== conditionToRemove);
 
-    const updatedFilter = conditions.join(' AND ');
+    const updatedFilter = conditions.join(' OR ');
 
     await pool2.query('UPDATE settings SET remove_from_public = $1', [updatedFilter]);
     res.status(200).json({ message: 'Filter removed successfully' });
