@@ -320,10 +320,10 @@ app.get('/report/:clientKey', async (req, res) => {
 
 app.post('/api/save-filter/:clientKey', express.json(), async (req, res) => {
   const { clientKey } = req.params;
-  const { column, value } = req.body;
+  const { filterString } = req.body;
 
-  if (!column || !value) {
-    return res.status(400).json({ error: 'Column and value are required' });
+  if (typeof filterString !== 'string') {
+    return res.status(400).json({ error: 'Invalid filter string' });
   }
 
   const pool2 = new Pool({
@@ -337,19 +337,11 @@ app.post('/api/save-filter/:clientKey', express.json(), async (req, res) => {
   });
 
   try {
-    // Retrieve existing filter string
-    const result = await pool2.query('SELECT remove_from_public FROM settings LIMIT 1');
-    let existingFilter = result.rows[0]?.remove_from_public || '';
-
-    // Append new condition
-    const newCondition = `${column} = '${value}'`;
-    const updatedFilter = existingFilter ? `${existingFilter} AND ${newCondition}` : newCondition;
-
-    // Update settings table
-    await pool2.query('UPDATE settings SET remove_from_public = $1', [updatedFilter]);
-    res.status(200).json({ message: 'Filter saved successfully' });
+    // Replace the existing filter string in the settings table
+    await pool2.query('UPDATE settings SET remove_from_public = $1', [filterString]);
+    res.status(200).json({ message: 'Filter string updated successfully' });
   } catch (error) {
-    console.error('Error saving filter:', error);
+    console.error('Error saving filter string:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -372,7 +364,7 @@ app.get('/api/get-saved-filters/:clientKey', async (req, res) => {
     const filterString = result.rows[0]?.remove_from_public || '';
     res.json({ filterString });
   } catch (error) {
-    console.error('Error fetching filter:', error);
+    console.error('Error fetching filter string:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
