@@ -469,7 +469,7 @@ app.get('/api/get-values/:clientKey', async (req, res) => {
     const result = await pool2.query(`
       SELECT DISTINCT ${column}
       FROM client_data_${year}
-      WHERE creation >= NOW() - INTERVAL '30 days'
+      WHERE creation::timestamp >= NOW() - INTERVAL '30 days'
     `);
 
     const values = result.rows.map(row => row[column]);
