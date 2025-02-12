@@ -341,19 +341,27 @@ app.post('/api/save-filter/:clientKey', express.json(), async (req, res) => {
   });
 
   try {
-    // Log connection success
-    console.log('Database connection established.');
+    // Check if the settings table already has a row
+    const checkResult = await pool2.query('SELECT COUNT(*) FROM settings');
+    const rowCount = parseInt(checkResult.rows[0].count, 10);
 
-    // Update settings table
-    const updateResult = await pool2.query('UPDATE settings SET remove_from_public = $1', [filterString]);
-
-    console.log('Rows affected by update:', updateResult.rowCount);  // Should be 1 if successful
-
-    if (updateResult.rowCount === 0) {
-      console.warn('Update query ran but did not affect any rows.');
+    if (rowCount === 0) {
+      // Insert a new row if none exists
+      console.log('No existing settings found. Inserting new row.');
+      await pool2.query(
+        'INSERT INTO settings (remove_from_public, edit_public) VALUES ($1, $2)',
+        [filterString, '']
+      );
+    } else {
+      // Update the existing row
+      console.log('Existing settings found. Updating the row.');
+      await pool2.query(
+        'UPDATE settings SET remove_from_public = $1',
+        [filterString]
+      );
     }
 
-    res.status(200).json({ message: 'Filter string updated successfully' });
+    res.status(200).json({ message: 'Filter string saved successfully' });
   } catch (error) {
     console.error('Error saving filter string:', error);
     res.status(500).json({ error: 'Internal Server Error' });
