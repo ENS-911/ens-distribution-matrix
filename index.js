@@ -61,17 +61,18 @@ app.get('/data/:clientKey', async (req, res) => {
   });
 
   try {
-    // Retrieve filter string
+    // Retrieve filter string from settings
     const filterResult = await pool2.query('SELECT remove_from_public FROM settings LIMIT 1');
-    const filterCondition = (filterResult.rows.length > 0 && filterResult.rows[0].remove_from_public) 
-                            ? filterResult.rows[0].remove_from_public 
-                            : '';
+    const filterCondition = filterResult.rows[0]?.remove_from_public || '';
 
-    // Build query with filter
+    // Build the data query with filtering
     let query = `SELECT * FROM client_data_${year} WHERE active = 'yes'`;
+    
     if (filterCondition) {
-      query += ` AND NOT (${filterCondition})`;  // Exclude records matching the filter
+      query += ` AND NOT (${filterCondition})`;  // Ensure filtering is applied
     }
+
+    console.log('Final Data Query:', query);  // Debugging output
 
     const dataResult = await pool2.query(query);
     res.json(dataResult.rows);
