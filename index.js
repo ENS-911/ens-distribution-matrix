@@ -443,6 +443,43 @@ app.get('/api/get-columns/:clientKey', async (req, res) => {
   }
 });
 
+app.get('/api/get-values/:clientKey', async (req, res) => {
+  const { clientKey } = req.params;
+  const { column } = req.query;
+  const year = new Date().getFullYear();
+
+  // Validate the column parameter
+  if (!column) {
+    return res.status(400).json({ error: 'Column parameter is required' });
+  }
+
+  // Connect to the client-specific database
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    // Fetch distinct values from the specified column for the last 30 days
+    const result = await pool2.query(`
+      SELECT DISTINCT ${column}
+      FROM client_data_${year}
+      WHERE creation >= NOW() - INTERVAL '30 days'
+    `);
+
+    const values = result.rows.map(row => row[column]);
+    res.json({ values });
+  } catch (error) {
+    console.error('Error fetching values:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
