@@ -519,6 +519,13 @@ app.post('/api/save-replacement/:clientKey', express.json(), async (req, res) =>
     return res.status(400).json({ error: 'Invalid replacement data' });
   }
 
+  // Remove empty column entries before saving
+  const filteredRules = replacementRules.filter(rule => rule.column.trim() !== '');
+
+  if (filteredRules.length === 0) {
+    return res.status(400).json({ error: 'No valid replacement rules provided' });
+  }
+
   const pool2 = new Pool({
     user: 'ensahost_client',
     host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
@@ -531,7 +538,7 @@ app.post('/api/save-replacement/:clientKey', express.json(), async (req, res) =>
 
   try {
     // Convert rules to JSON format and save in settings
-    await pool2.query('UPDATE settings SET edit_public = $1', [JSON.stringify(replacementRules)]);
+    await pool2.query('UPDATE settings SET edit_public = $1', [JSON.stringify(filteredRules)]);
     res.status(200).json({ message: 'Replacement rules updated successfully' });
   } catch (error) {
     console.error('Error saving replacement rules:', error);
