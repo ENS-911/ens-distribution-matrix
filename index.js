@@ -62,20 +62,34 @@ app.get('/data/:clientKey', async (req, res) => {
 
   try {
     // Retrieve filter string from settings
-    const filterResult = await pool2.query('SELECT remove_from_public FROM settings LIMIT 1');
-    const filterCondition = filterResult.rows[0]?.remove_from_public || '';
+    const settingsResult = await pool2.query('SELECT remove_from_public, edit_public FROM settings LIMIT 1');
+    const filterCondition = settingsResult.rows[0]?.remove_from_public || '';
+    const replacementRules = JSON.parse(settingsResult.rows[0]?.edit_public || '[]');
 
-    // Build the data query with filtering
+    // Build the data query
     let query = `SELECT * FROM client_data_${year} WHERE active = 'yes'`;
-    
     if (filterCondition) {
-      query += ` AND NOT (${filterCondition})`;  // Ensure filtering is applied
+      query += ` AND NOT (${filterCondition})`;
     }
 
-    console.log('Final Data Query:', query);  // Debugging output
-
+    console.log('Final Data Query:', query);
     const dataResult = await pool2.query(query);
-    res.json(dataResult.rows);
+    let data = dataResult.rows;
+
+    // Apply replacements to the dataset before sending
+    if (replacementRules.length > 0) {
+      console.log('Applying Replacements:', replacementRules);
+      data = data.map(row => {
+        replacementRules.forEach(rule => {
+          if (row[rule.column] === rule.value) {
+            row[rule.column] = rule.replaceWith;
+          }
+        });
+        return row;
+      });
+    }
+
+    res.json(data);
   } catch (error) {
     console.error('Error fetching data:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -491,6 +505,61 @@ app.get('/api/get-values/:clientKey', async (req, res) => {
     res.json({ values });
   } catch (error) {
     console.error('Error fetching values:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/save-replacement/:clientKey', express.json(), async (req, res) => {
+  const { clientKey } = req.params;
+  const { replacementRules } = req.body;
+
+  console.log('Received replacement rules:', replacementRules);
+
+  if (!Array.isArray(replacementRules)) {
+    return res.status(400).json({ error: 'Invalid replacement data' });
+  }
+
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    // Convert rules to JSON format and save in settings
+    await pool2.query('UPDATE settings SET edit_public = $1', [JSON.stringify(replacementRules)]);
+    res.status(200).json({ message: 'Replacement rules updated successfully' });
+  } catch (error) {
+    console.error('Error saving replacement rules:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/get-replacement-rules/:clientKey', async (req, res) => {
+  const { clientKey } = req.params;
+
+  const pool2 = new Pool({
+    user: 'ensahost_client',
+    host: `client-${clientKey}.cfzb4vlbttqg.us-east-2.rds.amazonaws.com`,
+    database: 'postgres',
+    password: 'ZCK,tCI8lv4o',
+    port: 5432,
+    max: 20,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    // Retrieve replacement rules from settings table
+    const result = await pool2.query('SELECT edit_public FROM settings LIMIT 1');
+    const replacementRules = JSON.parse(result.rows[0]?.edit_public || '[]');
+
+    res.json({ replacementRules });
+  } catch (error) {
+    console.error('Error fetching replacement rules:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
