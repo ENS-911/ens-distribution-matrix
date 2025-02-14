@@ -457,13 +457,27 @@ app.get('/api/get-columns/:clientKey', async (req, res) => {
     const result = await pool2.query(`
       SELECT column_name 
       FROM information_schema.columns 
-      WHERE table_name = 'client_data_${year}' 
+      WHERE table_name = 'client_data_${year}'
     `);
 
-    // Filter out the 'ID' column
+    // Columns to remove
+    const excludedColumns = [
+      'id', 
+      'active', 
+      'creation', 
+      'db_id', 
+      'entered_queue', 
+      'latitude', 
+      'longitude', 
+      'master_incident_id', 
+      'sequencenumber', 
+      'statusdatetime'
+    ];
+
+    // Filter out the unwanted columns
     const columns = result.rows
       .map(row => row.column_name)
-      .filter(col => col.toLowerCase() !== 'id');
+      .filter(col => !excludedColumns.includes(col.toLowerCase())); // Case-insensitive filter
 
     res.json({ columns });
   } catch (error) {
