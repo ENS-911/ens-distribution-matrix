@@ -25,6 +25,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use(express.json());
+
 app.get('/', (req, res) => {
     res.send('Hello, world!');
   });
@@ -92,6 +94,50 @@ app.get('/data/:clientKey', async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/client/:clientKey/countbar_styles', async (req, res) => {
+  const clientKey = req.params.clientKey;
+
+  try {
+    const result = await pool.query(
+      'SELECT countbar_styles FROM clients WHERE key = $1',
+      [clientKey]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json(result.rows[0].countbar_styles);
+  } catch (error) {
+    console.error('Error retrieving countbar_styles:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/client/:clientKey/countbar_styles', verifyToken, async (req, res) => {
+  const clientKey = req.params.clientKey;
+  const styles = req.body; // Expecting a JSON object with your style data
+
+  try {
+    const result = await pool.query(
+      'UPDATE clients SET countbar_styles = $1 WHERE key = $2 RETURNING countbar_styles',
+      [styles, clientKey]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    res.json({
+      message: 'Styles updated successfully',
+      countbar_styles: result.rows[0].countbar_styles
+    });
+  } catch (error) {
+    console.error('Error updating countbar_styles:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
