@@ -118,7 +118,7 @@ app.get('/client/:clientKey/countbar_styles', async (req, res) => {
   }
 });
 
-app.post('/client/:clientKey/countbar_styles', verifyToken, async (req, res) => {
+app.post('/client/:clientKey/countbar_styles', async (req, res) => {
   const clientKey = req.params.clientKey;
   const styles = req.body; // Expecting a JSON object with your style data
 
