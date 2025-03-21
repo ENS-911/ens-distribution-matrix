@@ -161,7 +161,7 @@ app.get('/client/:clientKey/map_styles', async (req, res) => {
   }
 });
 
-app.post('/client/:clientKey/map_styles', verifyToken, async (req, res) => {
+app.post('/client/:clientKey/map_styles', async (req, res) => {
   const clientKey = req.params.clientKey;
   const styles = req.body; // Expecting a JSON object with map style settings
 
